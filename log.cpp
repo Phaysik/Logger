@@ -13,7 +13,8 @@ void Logging::Log::setTimeFormatting(const std::string &format)
     }
     else
     {
-        LG_WARN(format + " is an invalid time formatting. The formatting will default to %H:%M:%S");
+        LG_WARN("{0} is an invalid time formatting. The formatting will default to %H:%M:%S", format);
+
         timeFormatting = "%H:%M:%S";
     }
 }

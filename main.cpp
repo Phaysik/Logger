@@ -5,7 +5,7 @@ int main()
     Logging::Log log;
 
     log.setHeader("LOGGER");
-    log.setTimeFormatting("%H:%M:%S");
+    log.setTimeFormatting("%H:%H:%S");
 
     std::string testString = "Hello World";
 
