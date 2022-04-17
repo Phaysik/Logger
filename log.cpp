@@ -2,6 +2,8 @@
 
 std::string Logging::Log::header;
 std::string Logging::Log::timeFormatting;
+std::filesystem::path Logging::Log::logLocation;
+std::ofstream Logging::Log::outFile;
 
 void Logging::Log::setTimeFormatting(const std::string &format)
 {
@@ -22,4 +24,22 @@ void Logging::Log::setTimeFormatting(const std::string &format)
 void Logging::Log::setHeader(const std::string &logHeader)
 {
     header = logHeader;
+}
+
+void Logging::Log::setLogInfo(const std::string &folder, const std::string &file)
+{
+    logLocation = {folder};
+
+    logLocation /= file;
+
+    if (!std::filesystem::exists(folder))
+    {
+        std::filesystem::create_directories(logLocation.parent_path());
+
+        LG_INFO("{0} does not exist. Creating that directory now.", folder);
+    }
+
+    outFile.open(logLocation);
+
+    outFile.close();
 }
