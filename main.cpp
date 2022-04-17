@@ -8,9 +8,9 @@ int main()
     log.setTimeFormatting("%H:%M:%S");
     // log.setLogInfo("./logs", "log.txt");
 
-    std::string testString = "Hello World";
+    std::string testString = "testing String";
 
-    LG_INFO("Hello World, {2} - {4} {1:0.2f} {0:0.2f}", 21, 6.226, "else", false, testString);
+    LG_INFO("Hello World, {2:=9} - {4:>20} {1:0.2f} {0:0.1f}", 21.56, 6.226, "else", false, testString);
 
     return 0;
 }

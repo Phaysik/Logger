@@ -16,6 +16,14 @@
 
 namespace Logging
 {
+    enum Aligned
+    {
+        NONE,
+        LEFT,
+        RIGHT,
+        CENTER
+    };
+
     class Log
     {
     public:
@@ -76,21 +84,61 @@ namespace Logging
         }
 
         template <typename T>
-        static void sendOutput(const T &output, const bool decimalFormat = false, const int precision = 0)
+        static void sendOutput(const T &output, const bool decimalFormat = false, const int precision = 0, const int formatting = 0, const Aligned &align = Aligned::NONE, const size_t argLength = 0)
         {
             if (logLocation != "")
             {
                 outFile.open(logLocation, std::ios::app);
 
-                if (decimalFormat)
-                    outFile << std::fixed << std::setprecision(precision) << output;
-                else
-                    outFile << output;
+                outStream(outFile, output, decimalFormat, precision, formatting, align, argLength);
 
                 outFile.close();
             }
             else
-                std::cout << output;
+                outStream(std::cout, output, decimalFormat, precision, formatting, align, argLength);
+        }
+
+        template <typename T>
+        static void outStream(std::ostream &stream, const T &output, const bool decimalFormat = false, const int precision = 0, const int formatting = 0, const Aligned &align = Aligned::NONE, const size_t argLength = 0)
+        {
+            if (decimalFormat)
+                stream << std::fixed << std::setprecision(precision) << output;
+            else
+            {
+                switch (align)
+                {
+                case Aligned::NONE:
+                    stream << output;
+                    break;
+                case Aligned::LEFT:
+                    if (static_cast<int>(argLength) >= formatting)
+                        stream << output;
+                    else
+                        stream << std::left << std::setw(formatting) << output;
+                    break;
+                case Aligned::RIGHT:
+                    if (static_cast<int>(argLength) >= formatting)
+                        stream << output;
+                    else
+                        stream << std::right << std::setw(formatting) << output;
+                    break;
+                case Aligned::CENTER:
+                    if (static_cast<int>(argLength) >= formatting)
+                        stream << output;
+                    else
+                    {
+                        const bool isOdd = formatting & 1;
+                        const int mid = (formatting - static_cast<int>(argLength)) / 2;
+
+                        stream << std::left << std::setw(mid + isOdd) << "";
+                        stream << output;
+                        stream << std::right << std::setw(mid) << "";
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
         }
 
         template <class... Args>
@@ -144,7 +192,9 @@ namespace Logging
 
         static void printAtIndex(const std::vector<std::any> &args, const unsigned long index, std::string &formatting, const std::string &logMessage)
         {
-            std::regex decimalRegex("^0?.\\d*f$");
+            std::regex decimalRegex("^0?.\\d*f$"), leftAligned("^<\\d+$"), rightAligned("^>\\d+$"), centerAligned("^=\\d+$");
+
+            Aligned alignment = Aligned::NONE;
 
             bool decimalMatch = false;
 
@@ -159,39 +209,109 @@ namespace Logging
                 decimalPrecision = static_cast<int>(std::stof(formatting) * 10);
             }
 
+            if (std::regex_match(formatting, leftAligned))
+            {
+                formatting.erase(0, 1);
+
+                alignment = Aligned::LEFT;
+            }
+            else if (std::regex_match(formatting, rightAligned))
+            {
+                formatting.erase(0, 1);
+
+                alignment = Aligned::RIGHT;
+            }
+            else if (std::regex_match(formatting, centerAligned))
+            {
+                formatting.erase(0, 1);
+
+                alignment = Aligned::CENTER;
+            }
+
             if (args[index].type() == typeid(short))
-                handlePrintAtIndex(std::any_cast<short>(args[index]), decimalMatch, decimalPrecision);
+            {
+                short value = std::any_cast<short>(args[index]);
+
+                handlePrintAtIndex(value, decimalMatch, decimalPrecision, formatting, alignment, std::to_string(value).length());
+            }
             else if (args[index].type() == typeid(unsigned short))
-                handlePrintAtIndex(std::any_cast<unsigned short>(args[index]), decimalMatch, decimalPrecision);
+            {
+                unsigned short value = std::any_cast<unsigned short>(args[index]);
+
+                handlePrintAtIndex(value, decimalMatch, decimalPrecision, formatting, alignment, std::to_string(static_cast<int>(value)).length());
+            }
             else if (args[index].type() == typeid(int))
-                handlePrintAtIndex(std::any_cast<int>(args[index]), decimalMatch, decimalPrecision);
+            {
+                int value = std::any_cast<int>(args[index]);
+
+                handlePrintAtIndex(value, decimalMatch, decimalPrecision, formatting, alignment, std::to_string(value).length());
+            }
             else if (args[index].type() == typeid(unsigned int))
-                handlePrintAtIndex(std::any_cast<unsigned int>(args[index]), decimalMatch, decimalPrecision);
+            {
+                unsigned int value = std::any_cast<unsigned int>(args[index]);
+
+                handlePrintAtIndex(value, decimalMatch, decimalPrecision, formatting, alignment, std::to_string(value).length());
+            }
             else if (args[index].type() == typeid(long))
-                handlePrintAtIndex(std::any_cast<long>(args[index]), decimalMatch, decimalPrecision);
+            {
+                long value = std::any_cast<long>(args[index]);
+
+                handlePrintAtIndex(value, decimalMatch, decimalPrecision, formatting, alignment, std::to_string(value).length());
+            }
             else if (args[index].type() == typeid(unsigned long))
-                handlePrintAtIndex(std::any_cast<unsigned long>(args[index]), decimalMatch, decimalPrecision);
+            {
+                unsigned long value = std::any_cast<unsigned long>(args[index]);
+
+                handlePrintAtIndex(value, decimalMatch, decimalPrecision, formatting, alignment, std::to_string(value).length());
+            }
             else if (args[index].type() == typeid(float))
-                handlePrintAtIndex(std::any_cast<float>(args[index]), decimalMatch, decimalPrecision);
+            {
+                float value = std::any_cast<float>(args[index]);
+
+                handlePrintAtIndex(value, decimalMatch, decimalPrecision, formatting, alignment, std::to_string(value).length());
+            }
             else if (args[index].type() == typeid(double))
-                handlePrintAtIndex(std::any_cast<double>(args[index]), decimalMatch, decimalPrecision);
+            {
+                double value = std::any_cast<double>(args[index]);
+
+                handlePrintAtIndex(value, decimalMatch, decimalPrecision, formatting, alignment, std::to_string(value).length());
+            }
             else if (args[index].type() == typeid(std::string))
-                handlePrintAtIndex(std::any_cast<std::string>(args[index]), decimalMatch, decimalPrecision);
+            {
+                std::string value = std::any_cast<std::string>(args[index]);
+
+                handlePrintAtIndex(value, decimalMatch, decimalPrecision, formatting, alignment, value.length());
+            }
             else if (args[index].type() == typeid(bool))
-                handlePrintAtIndex(std::any_cast<bool>(args[index]), decimalMatch, decimalPrecision);
+            {
+                std::string value = std::any_cast<bool>(args[index]) ? "true" : "false";
+
+                handlePrintAtIndex(value, decimalMatch, decimalPrecision, formatting, alignment, value.length());
+            }
             else if (std::strcmp(args[index].type().name(), "PKc") == 0)
-                handlePrintAtIndex(std::any_cast<const char *>(args[index]), decimalMatch, decimalPrecision);
+            {
+                const char *value = std::any_cast<const char *>(args[index]);
+
+                std::string inString(value);
+
+                handlePrintAtIndex(value, decimalMatch, decimalPrecision, formatting, alignment, inString.length());
+            }
             else
                 LG_FATAL("\nArgument {0} is not an allowed type to be printed in:\n\t{1}", index, logMessage);
         }
 
         template <typename T>
-        static void handlePrintAtIndex(const T &val, const bool decimalMatch, const int precision)
+        static void handlePrintAtIndex(const T &val, const bool decimalMatch, const int precision, const std::string &formatting, const Aligned &align, const size_t argLength)
         {
             if (decimalMatch)
                 sendOutput(val, decimalMatch, precision);
             else
-                sendOutput(val);
+            {
+                if (formatting != "")
+                    sendOutput(val, false, 0, std::stoi(formatting), align, argLength);
+                else
+                    sendOutput(val);
+            }
         }
 
         static void argSplitter(const std::string &argument, std::string *argArray, int &index)
