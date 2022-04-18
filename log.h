@@ -234,7 +234,7 @@ namespace Logging
                     break;
                 case Truncation::Truncate::CENTER:
                     if (argLength >= formatLength)
-                        stream << argument.substr(static_cast<size_t>((argLength - formatLength) / 2), static_cast<size_t>(argLength - (argLength - formatLength)));
+                        stream << argument.substr(static_cast<size_t>((argLength - formatLength) / 2), static_cast<size_t>(argLength - (argLength - formatLength) + (argLength & 1)));
 
                     break;
                 default:

@@ -11,7 +11,7 @@ int main()
     std::string testString = "testing String";
     std::string testString2 = "truncation";
 
-    LG_INFO("Hello World, {2:=12} - {4:>20} {5:-4!}{5:6!} {5:=8!} {1:0.2f} {0:0.1f}", 21.56, 6.226, "else", false, testString, testString2);
+    LG_INFO("Hello World, {2:=12} - {4:>20} {5:-4!}{5:6!} {3:=2!} {1:0.2f} {0:0.1f}", 21.56, 6.226, "else", false, testString, testString2);
 
     return 0;
 }
