@@ -84,6 +84,7 @@ namespace Logging
             int getArgLength() const;
             int getFormatLength() const;
             bool getInUse() const;
+            std::string getArgument() const;
 
             void setArgument(const std::string &argument);
 
@@ -214,34 +215,27 @@ namespace Logging
                 int argLength = truncation->getArgLength();
                 int formatLength = truncation->getFormatLength();
 
+                std::string argument = truncation->getArgument();
+
                 switch (truncation->getTruncation())
                 {
                 case Truncation::Truncate::NONE:
-                    stream << output;
+                    stream << argument;
                     break;
                 case Truncation::Truncate::LEFT:
                     if (argLength >= formatLength)
-                        stream << output;
+                        stream << argument.substr(static_cast<size_t>(argLength - (argLength - formatLength)), static_cast<size_t>(argLength));
 
                     break;
                 case Truncation::Truncate::RIGHT:
-                    if (truncation->getArgLength() >= truncation->getFormatLength())
-                        stream << output;
-                    else
-                        stream << std::right << std::setw(truncation->getFormatLength()) << output;
+                    if (argLength >= formatLength)
+                        stream << argument.substr(0, static_cast<size_t>(argLength - formatLength));
+
                     break;
                 case Truncation::Truncate::CENTER:
-                    if (truncation->getArgLength() >= truncation->getFormatLength())
-                        stream << output;
-                    else
-                    {
-                        const bool isOdd = truncation->getFormatLength() & 1;
-                        const int mid = (truncation->getFormatLength() - truncation->getArgLength()) / 2;
+                    if (argLength >= formatLength)
+                        stream << argument.substr(static_cast<size_t>((argLength - formatLength) / 2), static_cast<size_t>(argLength - (argLength - formatLength)));
 
-                        stream << std::left << std::setw(mid + isOdd) << "";
-                        stream << output;
-                        stream << std::right << std::setw(mid) << "";
-                    }
                     break;
                 default:
                     break;
@@ -302,9 +296,9 @@ namespace Logging
 
         static void printAtIndex(const std::vector<std::any> &args, const unsigned long index, std::string &formatting, const std::string &logMessage)
         {
-            Alignment alignment(formatting);
-
             DecimalFormat decimalFormat(formatting);
+
+            Alignment alignment(formatting);
 
             Truncation truncation(formatting);
 
@@ -312,117 +306,61 @@ namespace Logging
             {
                 short value = std::any_cast<short>(args[index]);
 
-                std::string output = std::to_string(value);
-
-                alignment.setLength(output.length());
-
-                truncation.setArgument(output);
-
-                handlePrintAtIndex(value, decimalFormat, alignment, truncation);
+                handleFormats(value, std::to_string(value), decimalFormat, alignment, truncation);
             }
             else if (args[index].type() == typeid(unsigned short))
             {
                 unsigned short value = std::any_cast<unsigned short>(args[index]);
 
-                std::string output = std::to_string(static_cast<int>(value));
-
-                alignment.setLength(output.length());
-
-                truncation.setArgument(output);
-
-                handlePrintAtIndex(value, decimalFormat, alignment, truncation);
+                handleFormats(value, std::to_string(static_cast<int>(value)), decimalFormat, alignment, truncation);
             }
             else if (args[index].type() == typeid(int))
             {
                 int value = std::any_cast<int>(args[index]);
 
-                std::string output = std::to_string(value);
-
-                alignment.setLength(output.length());
-
-                truncation.setArgument(output);
-
-                handlePrintAtIndex(value, decimalFormat, alignment, truncation);
+                handleFormats(value, std::to_string(value), decimalFormat, alignment, truncation);
             }
             else if (args[index].type() == typeid(unsigned int))
             {
                 unsigned int value = std::any_cast<unsigned int>(args[index]);
 
-                std::string output = std::to_string(value);
-
-                alignment.setLength(output.length());
-
-                truncation.setArgument(output);
-
-                handlePrintAtIndex(value, decimalFormat, alignment, truncation);
+                handleFormats(value, std::to_string(value), decimalFormat, alignment, truncation);
             }
             else if (args[index].type() == typeid(long))
             {
                 long value = std::any_cast<long>(args[index]);
 
-                std::string output = std::to_string(value);
-
-                alignment.setLength(output.length());
-
-                truncation.setArgument(output);
-
-                handlePrintAtIndex(value, decimalFormat, alignment, truncation);
+                handleFormats(value, std::to_string(value), decimalFormat, alignment, truncation);
             }
             else if (args[index].type() == typeid(unsigned long))
             {
                 unsigned long value = std::any_cast<unsigned long>(args[index]);
 
-                std::string output = std::to_string(value);
-
-                alignment.setLength(output.length());
-
-                truncation.setArgument(output);
-
-                handlePrintAtIndex(value, decimalFormat, alignment, truncation);
+                handleFormats(value, std::to_string(value), decimalFormat, alignment, truncation);
             }
             else if (args[index].type() == typeid(float))
             {
                 float value = std::any_cast<float>(args[index]);
 
-                std::string output = std::to_string(value);
-
-                alignment.setLength(output.length());
-
-                truncation.setArgument(output);
-
-                handlePrintAtIndex(value, decimalFormat, alignment, truncation);
+                handleFormats(value, std::to_string(value), decimalFormat, alignment, truncation);
             }
             else if (args[index].type() == typeid(double))
             {
                 double value = std::any_cast<double>(args[index]);
 
-                std::string output = std::to_string(value);
-
-                alignment.setLength(output.length());
-
-                truncation.setArgument(output);
-
-                handlePrintAtIndex(value, decimalFormat, alignment, truncation);
+                handleFormats(value, std::to_string(value), decimalFormat, alignment, truncation);
             }
             else if (args[index].type() == typeid(std::string))
             {
                 std::string value = std::any_cast<std::string>(args[index]);
 
-                alignment.setLength(value.length());
-
-                truncation.setArgument(value);
-
-                handlePrintAtIndex(value, decimalFormat, alignment, truncation);
+                handleFormats(value, value, decimalFormat, alignment, truncation);
             }
             else if (args[index].type() == typeid(bool))
             {
                 std::string value = std::any_cast<bool>(args[index]) ? "true" : "false";
 
-                alignment.setLength(value.length());
-
-                truncation.setArgument(value);
-
-                handlePrintAtIndex(value, decimalFormat, alignment, truncation);
+                handleFormats(value, value, decimalFormat, alignment, truncation);
             }
             else if (std::strcmp(args[index].type().name(), "PKc") == 0)
             {
@@ -430,14 +368,22 @@ namespace Logging
 
                 std::string inString(value);
 
-                alignment.setLength(inString.length());
-
-                truncation.setArgument(inString);
-
-                handlePrintAtIndex(value, decimalFormat, alignment, truncation);
+                handleFormats(value, inString, decimalFormat, alignment, truncation);
             }
             else
                 LG_FATAL("\nArgument {0} is not an allowed type to be printed in:\n\t{1}", index, logMessage);
+        }
+
+        template <typename T>
+        static void handleFormats(const T &value, const std::string &output, DecimalFormat &decimalFormat, Alignment &alignment, Truncation &truncation)
+        {
+            size_t length = output.length();
+
+            alignment.setLength(length);
+
+            truncation.setArgument(output);
+
+            handlePrintAtIndex(value, decimalFormat, alignment, truncation);
         }
 
         template <typename T>

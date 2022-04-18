@@ -138,24 +138,24 @@ void Logging::Log::Alignment::setLength(const size_t length)
 
 Logging::Log::Truncation::Truncation(const std::string &format) : formatter(format)
 {
-    std::regex truncateLeft("^-\\d+!$"), truncateRight("^\\d+!$"), truncateCenter("^=\\d+!$");
+    std::regex truncateRight("^-\\d+!$"), truncateLeft("^\\d+!$"), truncateCenter("^=\\d+!$");
 
-    if (std::regex_match(formatter, truncateLeft))
+    if (std::regex_match(formatter, truncateRight))
     {
         formatter.erase(0, 1); // The -
         formatter.pop_back();  // The !
 
-        truncate = Truncate::LEFT;
+        truncate = Truncate::RIGHT;
 
         formatting = std::stoi(formatter);
 
         inUse = true;
     }
-    else if (std::regex_match(formatter, truncateRight))
+    else if (std::regex_match(formatter, truncateLeft))
     {
-        formatter.erase(0, 1); // The -
+        formatter.pop_back(); // The !
 
-        truncate = Truncate::RIGHT;
+        truncate = Truncate::LEFT;
 
         formatting = std::stoi(formatter);
 
@@ -197,6 +197,11 @@ int Logging::Log::Truncation::getFormatLength() const
 bool Logging::Log::Truncation::getInUse() const
 {
     return inUse;
+}
+
+std::string Logging::Log::Truncation::getArgument() const
+{
+    return arg;
 }
 
 void Logging::Log::Truncation::setArgument(const std::string &argument)
