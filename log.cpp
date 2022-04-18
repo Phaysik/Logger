@@ -7,7 +7,7 @@ std::ofstream Logging::Log::outFile;
 
 void Logging::Log::setTimeFormatting(const std::string &format)
 {
-    std::regex timeFormattingRegex("%([HMS]):%((?!\\1)[HMS]):%(?!\\1)(?!\\2)[HMS]");
+    std::regex timeFormattingRegex("^%([HMS]):%((?!\\1)[HMS]):%(?!\\1)(?!\\2)[HMS]$");
 
     if (std::regex_match(format, timeFormattingRegex))
     {
@@ -81,6 +81,8 @@ Logging::Log::Alignment::Alignment(const std::string &format) : formatter(format
         aligned = Aligned::LEFT;
 
         formatting = std::stoi(formatter);
+
+        inUse = true;
     }
     else if (std::regex_match(formatter, rightAligned))
     {
@@ -89,6 +91,8 @@ Logging::Log::Alignment::Alignment(const std::string &format) : formatter(format
         aligned = Aligned::RIGHT;
 
         formatting = std::stoi(formatter);
+
+        inUse = true;
     }
     else if (std::regex_match(formatter, centerAligned))
     {
@@ -97,9 +101,14 @@ Logging::Log::Alignment::Alignment(const std::string &format) : formatter(format
         aligned = Aligned::CENTER;
 
         formatting = std::stoi(formatter);
+
+        inUse = true;
     }
     else
+    {
         aligned = Aligned::NONE;
+        inUse = false;
+    }
 }
 
 Logging::Log::Alignment::Aligned Logging::Log::Alignment::getAlignment() const
@@ -117,7 +126,82 @@ int Logging::Log::Alignment::getFormatLength() const
     return formatting;
 }
 
+bool Logging::Log::Alignment::getInUse() const
+{
+    return inUse;
+}
+
 void Logging::Log::Alignment::setLength(const size_t length)
 {
     argLength = length;
+}
+
+Logging::Log::Truncation::Truncation(const std::string &format) : formatter(format)
+{
+    std::regex truncateLeft("^-\\d+!$"), truncateRight("^\\d+!$"), truncateCenter("^=\\d+!$");
+
+    if (std::regex_match(formatter, truncateLeft))
+    {
+        formatter.erase(0, 1); // The -
+        formatter.pop_back();  // The !
+
+        truncate = Truncate::LEFT;
+
+        formatting = std::stoi(formatter);
+
+        inUse = true;
+    }
+    else if (std::regex_match(formatter, truncateRight))
+    {
+        formatter.erase(0, 1); // The -
+
+        truncate = Truncate::RIGHT;
+
+        formatting = std::stoi(formatter);
+
+        inUse = true;
+    }
+    else if (std::regex_match(formatter, truncateCenter))
+    {
+        formatter.erase(0, 1); // The =
+        formatter.pop_back();  // The !
+
+        truncate = Truncate::CENTER;
+
+        formatting = std::stoi(formatter);
+
+        inUse = true;
+    }
+    else
+    {
+        truncate = Truncate::NONE;
+        inUse = true;
+    }
+}
+
+Logging::Log::Truncation::Truncate Logging::Log::Truncation::getTruncation() const
+{
+    return truncate;
+}
+
+int Logging::Log::Truncation::getArgLength() const
+{
+    return static_cast<int>(argLength);
+}
+
+int Logging::Log::Truncation::getFormatLength() const
+{
+    return formatting;
+}
+
+bool Logging::Log::Truncation::getInUse() const
+{
+    return inUse;
+}
+
+void Logging::Log::Truncation::setArgument(const std::string &argument)
+{
+    arg = argument;
+
+    argLength = arg.length();
 }
