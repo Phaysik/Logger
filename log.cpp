@@ -1,7 +1,7 @@
 #include "log.h"
 
 std::string Logging::Log::header;
-std::string Logging::Log::timeFormatting;
+std::string Logging::Log::timeFormatting = "%H:%M:%S";
 std::filesystem::path Logging::Log::logLocation;
 std::ofstream Logging::Log::outFile;
 
