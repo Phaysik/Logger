@@ -13,6 +13,8 @@
 #define LG_INFO(...) Logging::Log::info(__VA_ARGS__)
 #define LG_WARN(...) Logging::Log::warn(__VA_ARGS__)
 #define LG_FATAL(...) Logging::Log::fatal(__VA_ARGS__)
+#define LG_SUCCESS(...) Logging::Log::testSuccess(__VA_ARGS__)
+#define LG_FAIL(...) Logging::Log::testFailure(__VA_ARGS__)
 
 namespace Logging
 {
@@ -103,9 +105,13 @@ namespace Logging
         {
             std::string newLogMessage = logMessage;
 
-            if (newLogMessage[0] == '\n')
+            while (newLogMessage[0] == '\n' || newLogMessage[0] == '\t')
             {
-                sendOutput("\n");
+                if (newLogMessage[0] == '\n')
+                    sendOutput("\n");
+                else
+                    sendOutput("\t");
+
                 newLogMessage.erase(0, 1);
             }
 
@@ -121,9 +127,13 @@ namespace Logging
         {
             std::string newLogMessage = logMessage;
 
-            if (newLogMessage[0] == '\n')
+            while (newLogMessage[0] == '\n' || newLogMessage[0] == '\t')
             {
-                sendOutput("\n");
+                if (newLogMessage[0] == '\n')
+                    sendOutput("\n");
+                else
+                    sendOutput("\t");
+
                 newLogMessage.erase(0, 1);
             }
 
@@ -139,9 +149,13 @@ namespace Logging
         {
             std::string newLogMessage = logMessage;
 
-            if (newLogMessage[0] == '\n')
+            while (newLogMessage[0] == '\n' || newLogMessage[0] == '\t')
             {
-                sendOutput("\n");
+                if (newLogMessage[0] == '\n')
+                    sendOutput("\n");
+                else
+                    sendOutput("\t");
+
                 newLogMessage.erase(0, 1);
             }
 
@@ -152,6 +166,50 @@ namespace Logging
             printer(newLogMessage, args...);
 
             exit(1);
+        }
+
+        template <class... Args>
+        static void testSuccess(const std::string &logMessage, const Args &...args)
+        {
+            std::string newLogMessage = logMessage;
+
+            while (newLogMessage[0] == '\n' || newLogMessage[0] == '\t')
+            {
+                if (newLogMessage[0] == '\n')
+                    sendOutput("\n");
+                else
+                    sendOutput("\t");
+
+                newLogMessage.erase(0, 1);
+            }
+
+            std::cout << "\033[38;2;25;207;73m";
+
+            sendOutput("[");
+
+            printer(newLogMessage, args...);
+        }
+
+        template <class... Args>
+        static void testFailure(const std::string &logMessage, const Args &...args)
+        {
+            std::string newLogMessage = logMessage;
+
+            while (newLogMessage[0] == '\n' || newLogMessage[0] == '\t')
+            {
+                if (newLogMessage[0] == '\n')
+                    sendOutput("\n");
+                else
+                    sendOutput("\t");
+
+                newLogMessage.erase(0, 1);
+            }
+
+            std::cout << "\033[38;2;217;28;28m";
+
+            sendOutput("[");
+
+            printer(newLogMessage, args...);
         }
 
         template <typename T>
@@ -245,6 +303,16 @@ namespace Logging
                 stream << output;
         }
 
+        static void setTimeFormat(std::string &timeFormat, const size_t index, const tm *local_time)
+        {
+            if (timeFormatting[index] == 'H')
+                timeFormat += std::to_string(local_time->tm_hour);
+            else if (timeFormatting[index] == 'M')
+                timeFormat += std::to_string(local_time->tm_min);
+            else if (timeFormatting[index] == 'S')
+                timeFormat += std::to_string(local_time->tm_sec);
+        }
+
         template <class... Args>
         static void printer(const std::string &logMessage, const Args &...args)
         {
@@ -252,11 +320,23 @@ namespace Logging
 
             unsigned long argsLength = anyArgs.size();
 
+            std::string timeString = "";
+
             time_t ttime = time(nullptr);
 
-            tm *local_time = localtime(&ttime); // TODO make time follow #timeFormatting
+            tm *local_time = localtime(&ttime);
 
-            std::string timeString = std::to_string(local_time->tm_hour) + ":" + std::to_string(local_time->tm_min) + ":" + std::to_string(local_time->tm_sec) + "]: " + header + ": ";
+            setTimeFormat(timeString, 1, local_time);
+
+            timeString += ":";
+
+            setTimeFormat(timeString, 4, local_time);
+
+            timeString += ":";
+
+            setTimeFormat(timeString, 7, local_time);
+
+            timeString += "] " + header + ": ";
 
             sendOutput(timeString);
 
