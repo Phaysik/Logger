@@ -13,8 +13,8 @@
 #define LG_INFO(...) Logging::Log::info(__VA_ARGS__)
 #define LG_WARN(...) Logging::Log::warn(__VA_ARGS__)
 #define LG_FATAL(...) Logging::Log::fatal(__VA_ARGS__)
-#define LG_SUCCESS(...) Logging::Log::testSuccess(__VA_ARGS__)
-#define LG_FAIL(...) Logging::Log::testFailure(__VA_ARGS__)
+#define LG_TEST_SUCCESS(...) Logging::Log::testSuccess(__VA_ARGS__)
+#define LG_TEST_FAIL(...) Logging::Log::testFailure(__VA_ARGS__)
 
 namespace Logging
 {
@@ -69,6 +69,7 @@ namespace Logging
 
         class Truncation
         {
+        public:
             enum Truncate
             {
                 NONE,
@@ -77,7 +78,6 @@ namespace Logging
                 CENTER
             };
 
-        public:
             Truncation() : truncate(Truncate::NONE), inUse(false) {}
             Truncation(const std::string &format);
 
@@ -100,122 +100,155 @@ namespace Logging
         };
 
     public:
-        template <class... Args>
-        static void info(const std::string &logMessage, const Args &...args)
+        ~Log()
         {
-            std::string newLogMessage = logMessage;
-
-            while (newLogMessage[0] == '\n' || newLogMessage[0] == '\t')
+            if (logLocation != "")
             {
-                if (newLogMessage[0] == '\n')
-                    sendOutput("\n");
-                else
-                    sendOutput("\t");
+                outFile.open(logLocation, std::ios::app);
 
-                newLogMessage.erase(0, 1);
+                if (headerSet)
+                    outStream(outFile, "\\end{flushleft}");
+
+                outStream(outFile, "\\end{document}");
+
+                outFile.close();
             }
+        }
+        struct RGB
+        {
+            short red, green, blue;
 
-            std::cout << "\033[38;2;255;255;255m";
+            std::string name;
 
-            sendOutput("[");
+            std::string toString() const;
+        };
 
-            printer(newLogMessage, args...);
+        template <class... Args>
+        static void info(const std::string &logMessage, const bool ignoreFile = false, const Args &...args)
+        {
+            loggerAbstraction(loggerInfoColor, logMessage, ignoreFile, args...);
         }
 
         template <class... Args>
-        static void warn(const std::string &logMessage, const Args &...args)
+        static void warn(const std::string &logMessage, const bool ignoreFile = false, const Args &...args)
         {
-            std::string newLogMessage = logMessage;
-
-            while (newLogMessage[0] == '\n' || newLogMessage[0] == '\t')
-            {
-                if (newLogMessage[0] == '\n')
-                    sendOutput("\n");
-                else
-                    sendOutput("\t");
-
-                newLogMessage.erase(0, 1);
-            }
-
-            std::cout << "\033[38;2;232;129;26m";
-
-            sendOutput("[");
-
-            printer(newLogMessage, args...);
+            loggerAbstraction(loggerWarnColor, logMessage, ignoreFile, args...);
         }
 
         template <class... Args>
-        static void fatal(const std::string &logMessage, const Args &...args)
+        static void fatal(const std::string &logMessage, const bool ignoreFile = false, const Args &...args)
         {
-            std::string newLogMessage = logMessage;
-
-            while (newLogMessage[0] == '\n' || newLogMessage[0] == '\t')
-            {
-                if (newLogMessage[0] == '\n')
-                    sendOutput("\n");
-                else
-                    sendOutput("\t");
-
-                newLogMessage.erase(0, 1);
-            }
-
-            std::cout << "\033[38;2;217;28;28m";
-
-            sendOutput("[");
-
-            printer(newLogMessage, args...);
+            loggerAbstraction(loggerFatalColor, logMessage, ignoreFile, args...);
 
             exit(1);
         }
 
         template <class... Args>
-        static void testSuccess(const std::string &logMessage, const Args &...args)
+        static void testSuccess(const std::string &logMessage, const bool ignoreFile = false, const Args &...args)
         {
-            std::string newLogMessage = logMessage;
-
-            while (newLogMessage[0] == '\n' || newLogMessage[0] == '\t')
-            {
-                if (newLogMessage[0] == '\n')
-                    sendOutput("\n");
-                else
-                    sendOutput("\t");
-
-                newLogMessage.erase(0, 1);
-            }
-
-            std::cout << "\033[38;2;25;207;73m";
-
-            sendOutput("[");
-
-            printer(newLogMessage, args...);
+            loggerAbstraction(loggerTestSuccessColor, logMessage, ignoreFile, args...);
         }
 
         template <class... Args>
-        static void testFailure(const std::string &logMessage, const Args &...args)
+        static void testFailure(const std::string &logMessage, const bool ignoreFile = false, const Args &...args)
+        {
+            loggerAbstraction(loggerFatalColor, logMessage, ignoreFile, args...);
+        }
+
+        template <class... Args>
+        static void loggerAbstraction(const RGB &coloredText, const std::string &logMessage, const bool ignoreFile, const Args &...args)
         {
             std::string newLogMessage = logMessage;
 
             while (newLogMessage[0] == '\n' || newLogMessage[0] == '\t')
             {
                 if (newLogMessage[0] == '\n')
-                    sendOutput("\n");
+                    sendOutput("\n", ignoreFile);
                 else
-                    sendOutput("\t");
+                    sendOutput("\t", ignoreFile);
 
                 newLogMessage.erase(0, 1);
             }
 
-            std::cout << "\033[38;2;217;28;28m";
+            outFile.open(logLocation, std::ios::app);
 
-            sendOutput("[");
+            if (headerSet)
+                outStream(outFile, "\\hspace{\\parindent} ");
 
-            printer(newLogMessage, args...);
+            outStream(outFile, "\\textcolor{" + coloredText.name + "}{");
+
+            outFile.close();
+
+            sendOutput("[", ignoreFile);
+
+            printer(newLogMessage, ignoreFile, args...);
+
+            outFile.open(logLocation, std::ios::app);
+
+            outStream(outFile, "}\n\n");
+
+            outFile.close();
+        }
+
+        void setTimeFormatting(const std::string &format);
+
+        void setHeader(const std::string &header);
+
+        void setLogInfo(const std::string &folder, const std::string &file, const std::string &fileAuthor);
+
+    private:
+        static std::string timeFormatting;
+        static std::string header;
+        static bool headerSet;
+        static std::filesystem::path logLocation;
+        static std::ofstream outFile;
+        static std::string author;
+        static RGB loggerInfoColor;
+        static RGB loggerWarnColor;
+        static RGB loggerFatalColor;
+        static RGB loggerTestSuccessColor;
+
+        static void setTimeFormat(std::string &timeFormat, const size_t index, const tm *local_time)
+        {
+            if (timeFormatting[index] == 'H')
+                timeFormat += std::to_string(local_time->tm_hour);
+            else if (timeFormatting[index] == 'M')
+                timeFormat += std::to_string(local_time->tm_min);
+            else if (timeFormatting[index] == 'S')
+                timeFormat += std::to_string(local_time->tm_sec);
+        }
+
+        static std::string getLogColor(const RGB &color)
+        {
+            return "\033[38;2;" + std::to_string(color.red) + ";" + std::to_string(color.green) + ";" + std::to_string(color.blue) + "m";
+        }
+
+        static void initializeFile()
+        {
+            outFile.open(logLocation, std::ios::app);
+
+            outStream(outFile, "\\documentclass[12pt, a4paper]{article}\n");
+            outStream(outFile, "\\usepackage{xcolor}\n");
+            outStream(outFile, "\\usepackage[a3paper, total={10in, 8in}]{geometry}\n\n");
+
+            outStream(outFile, "\\title{Logging Results}\n");
+            outStream(outFile, "\\author{" + author + "}\n\n");
+
+            outStream(outFile, "\\definecolor{loggerInfoColor}{RGB}{" + loggerInfoColor.toString() + "}\n");
+            outStream(outFile, "\\definecolor{loggerWarnColor}{RGB}{" + loggerWarnColor.toString() + "}\n");
+            outStream(outFile, "\\definecolor{loggerFatalColor}{RGB}{" + loggerFatalColor.toString() + "}\n");
+            outStream(outFile, "\\definecolor{loggerTestSuccessColor}{RGB}{" + loggerTestSuccessColor.toString() + "}\n\n");
+
+            outStream(outFile, "\\begin{document}\n\n");
+            outStream(outFile, "\\maketitle\n\n");
+
+            outFile.close();
         }
 
         template <typename T>
-        static void sendOutput(const T &output, const DecimalFormat *decimalFormat = nullptr, const Alignment *alignment = nullptr, const Truncation *truncation = nullptr)
+        static void sendOutput(const T &output, const bool ignoreFile, const RGB *color = nullptr, const DecimalFormat *decimalFormat = nullptr, const Alignment *alignment = nullptr, const Truncation *truncation = nullptr)
         {
-            if (logLocation != "")
+            if (logLocation != "" && !ignoreFile)
             {
                 outFile.open(logLocation, std::ios::app);
 
@@ -224,7 +257,12 @@ namespace Logging
                 outFile.close();
             }
             else
+            {
+                if (color)
+                    outStream(std::cout, getLogColor(*color));
+
                 outStream(std::cout, output, decimalFormat, alignment, truncation);
+            }
         }
 
         template <typename T>
@@ -303,18 +341,8 @@ namespace Logging
                 stream << output;
         }
 
-        static void setTimeFormat(std::string &timeFormat, const size_t index, const tm *local_time)
-        {
-            if (timeFormatting[index] == 'H')
-                timeFormat += std::to_string(local_time->tm_hour);
-            else if (timeFormatting[index] == 'M')
-                timeFormat += std::to_string(local_time->tm_min);
-            else if (timeFormatting[index] == 'S')
-                timeFormat += std::to_string(local_time->tm_sec);
-        }
-
         template <class... Args>
-        static void printer(const std::string &logMessage, const Args &...args)
+        static void printer(const std::string &logMessage, const bool ignoreFile, const Args &...args)
         {
             std::vector<std::any> anyArgs = {args...};
 
@@ -338,7 +366,7 @@ namespace Logging
 
             timeString += "] " + header + ": ";
 
-            sendOutput(timeString);
+            sendOutput(timeString, ignoreFile);
 
             int i = 0;
 
@@ -357,21 +385,22 @@ namespace Logging
                         unsigned long position = std::stoul(splitArgs[0]);
 
                         if (position > argsLength)
-                            LG_FATAL("\n{0} is is greater than the provided amount of arguments in:\n\t{1}", splitArgs[0], logMessage);
+                            LG_FATAL("\n{0} is is greater than the provided amount of arguments in:\n\t{1}", true, splitArgs[0], logMessage);
 
                         printAtIndex(anyArgs, position, splitArgs[1], logMessage);
                     }
                     else
-                        LG_FATAL("\n{0} is an invalid positional argument in:\n\t{1}", splitArgs[0], logMessage);
+                        LG_FATAL("\n{0} is an invalid positional argument in:\n\t{1}", true, splitArgs[0], logMessage);
                 }
                 else
-                    sendOutput(logMessage[static_cast<unsigned long>(i++)]);
+                    sendOutput(logMessage[static_cast<unsigned long>(i++)], ignoreFile);
             }
-            sendOutput(".");
 
-            std::cout << "\033[0m";
-
-            sendOutput("\n");
+            if (logLocation == "")
+            {
+                sendOutput("\033[0m", ignoreFile);
+                sendOutput("\n", ignoreFile);
+            }
         }
 
         static void printAtIndex(const std::vector<std::any> &args, const unsigned long index, std::string &formatting, const std::string &logMessage)
@@ -469,7 +498,7 @@ namespace Logging
         template <typename T>
         static void handlePrintAtIndex(const T &val, const DecimalFormat &decimalFormat, const Alignment &alignment, const Truncation &truncation)
         {
-            sendOutput(val, &decimalFormat, &alignment, &truncation);
+            sendOutput(val, false, nullptr, &decimalFormat, &alignment, &truncation);
         }
 
         static void argSplitter(const std::string &argument, std::string *argArray, int &index)
@@ -503,17 +532,5 @@ namespace Logging
                     argArray[pos++] = token;
             }
         }
-
-        void setTimeFormatting(const std::string &format);
-
-        void setHeader(const std::string &header);
-
-        void setLogInfo(const std::string &folder, const std::string &file);
-
-    private:
-        static std::string timeFormatting;
-        static std::string header;
-        static std::filesystem::path logLocation;
-        static std::ofstream outFile;
     };
 }

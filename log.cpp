@@ -1,9 +1,20 @@
 #include "log.h"
 
 std::string Logging::Log::header;
+bool Logging::Log::headerSet = false;
 std::string Logging::Log::timeFormatting = "%H:%M:%S";
 std::filesystem::path Logging::Log::logLocation;
 std::ofstream Logging::Log::outFile;
+std::string Logging::Log::author;
+Logging::Log::RGB Logging::Log::loggerInfoColor = Logging::Log::RGB(128, 128, 128, "loggerInfoColor");
+Logging::Log::RGB Logging::Log::loggerWarnColor = Logging::Log::RGB(255, 165, 0, "loggerWarnColor");
+Logging::Log::RGB Logging::Log::loggerFatalColor = Logging::Log::RGB(255, 0, 0, "loggerFatalColor");
+Logging::Log::RGB Logging::Log::loggerTestSuccessColor = Logging::Log::RGB(25, 207, 73, "loggerTestSuccessColor");
+
+std::string Logging::Log::RGB::toString() const
+{
+    return std::to_string(red) + ", " + std::to_string(green) + ", " + std::to_string(blue);
+}
 
 void Logging::Log::setTimeFormatting(const std::string &format)
 {
@@ -15,7 +26,7 @@ void Logging::Log::setTimeFormatting(const std::string &format)
     }
     else
     {
-        LG_WARN("{0} is an invalid time formatting. The formatting will default to %H:%M:%S", format);
+        LG_WARN("{0} is an invalid time formatting. The formatting will default to %H:%M:%S", true, format);
 
         timeFormatting = "%H:%M:%S";
     }
@@ -24,24 +35,60 @@ void Logging::Log::setTimeFormatting(const std::string &format)
 void Logging::Log::setHeader(const std::string &logHeader)
 {
     header = logHeader;
-}
 
-void Logging::Log::setLogInfo(const std::string &folder, const std::string &file)
-{
-    logLocation = {folder};
-
-    logLocation /= file;
-
-    if (!std::filesystem::exists(folder))
+    if (logLocation != "")
     {
-        std::filesystem::create_directories(logLocation.parent_path());
+        outFile.open(logLocation, std::ios::app);
 
-        LG_INFO("{0} does not exist. Creating that directory now.", folder);
+        if (headerSet)
+            outStream(outFile, "\\end{flushleft}\n\n");
+
+        outStream(outFile, "\\section{" + header + "}\n\n");
+
+        outStream(outFile, "\\begin{flushleft}\n\n");
+
+        outFile.close();
     }
 
-    outFile.open(logLocation);
+    headerSet = true;
+}
 
+void Logging::Log::setLogInfo(const std::string &folder, const std::string &file, const std::string &fileAuthor)
+{
+    std::regex logFolderLocationRegex("^(.\\/)?[\\w]*$");
+    std::regex logFileLocationRegex("^[\\w]*$");
+
+    author = fileAuthor;
+
+    if (!std::regex_match(folder, logFolderLocationRegex))
+    {
+        LG_WARN("{0} is an invalid folder location. The folder location will default to './logs'", true, folder);
+
+        logLocation = "./logs";
+    }
+    else
+        logLocation = {folder};
+
+    if (!std::filesystem::exists(logLocation))
+    {
+        LG_INFO("{0} does not exist. Creating that directory now.", true, folder);
+
+        std::filesystem::create_directories(logLocation.parent_path());
+    }
+
+    if (!std::regex_match(file, logFileLocationRegex))
+    {
+        LG_WARN("{0} is an invalid file name. The file name will default to 'main'", true, file);
+
+        logLocation /= "main.tex";
+    }
+    else
+        logLocation /= file + ".tex";
+
+    outFile.open(logLocation);
     outFile.close();
+
+    initializeFile();
 }
 
 Logging::Log::DecimalFormat::DecimalFormat(std::string &formatting) : formatter(formatting)
